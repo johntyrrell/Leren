@@ -8,8 +8,10 @@
     <div>
         @foreach (var tafelSelectie in MogelijkeTafels)
         {
-            <input type="checkbox" @bind-value="tafelSelectie.IsSelected"><span>&nbsp; De tafel van @tafelSelectie.Getal</span><br/>
+            <input type="checkbox" @bind-value="tafelSelectie.IsSelected"/><span>&nbsp; De tafel van @tafelSelectie.Getal</span><br/>
         }
+        <br/>
+        <input type="checkbox" @bind-value="IsSamenOefenen"/>&nbsp; Samen oefenen
     </div>
     <button @onclick="Start">Start</button>
 }
@@ -17,7 +19,7 @@ else if (!IsAanHetControleren)
 {
     <h1>@Som</h1>
 
-    <input type="number" @bind-value="GegevenAntwoord" @ref="AntwoordInput"></input>
+    <input type="text" @bind-value="GegevenAntwoord" @ref="AntwoordInput"></input>
 
     <br/>
     <button @onclick="Check">Controleren</button>
@@ -33,21 +35,31 @@ else
 {
     <h1>@Som</h1>
 
-    <h2>@GegevenAntwoord</h2>
-
-    @if (GegevenAntwoord == Antwoord)
+    @if (!string.IsNullOrWhiteSpace(GegevenAntwoord))
     {
-        <p>Je hebt het goed!</p>
+        <p>Jouw antwoord is @GegevenAntwoord</p>
+    }
+
+    @if (!IsSamenOefenen)
+    {
+        @if (GegevenAntwoord == Antwoord.ToString())
+        {
+            <p>Je hebt het goed!</p>
+        }
+        else
+        {
+            <p>Helaas het antwoord is @Antwoord</p>
+        }
     }
     else
     {
-        <p>Helaas het antwoord is @Antwoord</p>
+        <p>Het juiste antwoord is @Antwoord</p>
     }
 
     <button @onclick="Volgende">Volgende</button>
 }
 
-@if (IsAanHetRekenen)
+@if (IsAanHetRekenen && !IsSamenOefenen)
 {
     <div>
         <table>
@@ -68,18 +80,19 @@ else
     private Random _random = new Random();
     private bool IsAanHetRekenen { get; set; }
     private bool IsAanHetControleren { get; set; }
+    private bool IsSamenOefenen { get; set; }
     private List<TafelSelectie> MogelijkeTafels { get; set; } = new();
     private int AantalGoed { get; set; }
     private int AantalFout { get; set; }
     private string Som { get; set; } = string.Empty;
     private int Antwoord { get; set; }
-    private int GegevenAntwoord { get; set; }
+    private string GegevenAntwoord { get; set; } = string.Empty;
     private System.Timers.Timer _timer = new();
     private int CountDown { get; set; }
 
     protected override Task OnInitializedAsync()
     {
-        MogelijkeTafels = Enumerable.Range(0, 10).Select(i => new TafelSelectie { Getal = i }).ToList();
+        MogelijkeTafels = Enumerable.Range(0, 11).Select(i => new TafelSelectie { Getal = i }).ToList();
         _timer.Interval = 1_000;
         _timer.Enabled = false;
         _timer.Elapsed += async (object? sender, ElapsedEventArgs e) =>
@@ -112,7 +125,7 @@ else
 
     private void Volgende()
     {
-        GegevenAntwoord = 0;
+        GegevenAntwoord = string.Empty;
         var alleTafels = MogelijkeTafels.Where(m => m.IsSelected).ToList();
         var tafel = alleTafels[_random.Next(alleTafels.Count)];
         var getal = _random.Next(10);
@@ -121,14 +134,17 @@ else
 
         IsAanHetControleren = false;
         CountDown = 15;
-        _timer.Enabled = true;
+        if (!IsSamenOefenen)
+        {
+            _timer.Enabled = true;
+        }
     }
 
     private void Check()
     {
         _timer.Enabled = false;
         IsAanHetControleren = true;
-        if (GegevenAntwoord == Antwoord)
+        if (GegevenAntwoord == Antwoord.ToString())
         {
             AantalGoed++;
         }
